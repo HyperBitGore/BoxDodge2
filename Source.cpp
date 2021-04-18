@@ -21,6 +21,7 @@ int score = 0;
 int scale = 100;
 int speed = 200;
 int spawnc = 0;
+bool colliding[4] = {false, false, false, false};
 class Entity {
 public:
 	float x;
@@ -54,16 +55,31 @@ void death() {
 
 
 int player_u(Entity *p) {
-	if (GetAsyncKeyState(VkKeyScanA('w')) & 0x8000) {
+	if (player.y <= 0) {
+		colliding[0] = true;
+	}
+	else if (player.y + player.h >= 600) {
+		colliding[1] = true;
+	}
+	if (player.x <= 0) {
+		colliding[3] = true;
+	}
+	else if (player.x + player.w >= 600) {
+		colliding[2] = true;
+	}
+	if (GetAsyncKeyState(VkKeyScanA('w')) & 0x8000 && !colliding[0]) {
 		player.y-= (float)500*delta;
 	}
-	else if (GetAsyncKeyState(VkKeyScanA('s')) & 0x8000) {
+	else if (GetAsyncKeyState(VkKeyScanA('s')) & 0x8000 && !colliding[1]) {
 		player.y+= (float)500*delta;
 	}
-	if (GetAsyncKeyState(VkKeyScanA('d')) & 0x8000) {
+	if (GetAsyncKeyState(VkKeyScanA('d')) & 0x8000 && !colliding[2]) {
 		player.x+= (float)500*delta;
-	}else if (GetAsyncKeyState(VkKeyScanA('a')) & 0x8000) {
+	}else if (GetAsyncKeyState(VkKeyScanA('a')) & 0x8000 && !colliding[3]) {
 		player.x-= (float)500*delta;
+	}
+	for (int i = 0; i < 4; i++) {
+		colliding[i] = false;
 	}
 	SDL_Rect rec = { (*p).x, (*p).y, (*p).w, (*p).h};
 	SDL_SetRenderDrawColor(rend, 0, 0, 255, 0);
@@ -108,11 +124,26 @@ void spawn_thread() {
 void updateLighting() {
 	SDL_LockSurface(surface);
 	int lpower = 10;
-	for (int l = player.y-10; l < player.y + player.h + 10; l++) {
-		for (int k = player.x-10; k < player.x + player.w + 10; k++) {
-			double distance = sqrt(pow((double)(k - (player.x+10)), 2.0) + pow((double)(l - (player.y+10)), 2.0));
+	for (auto& i : boxes) {
+		int mh = i.h / 2;
+		int mw = i.w / 2;
+		if (i.y-i.h > 0 && i.y+i.h+mh < 599) {
+			for (int l = i.y - mh; l < i.y + i.h + mh; l++) {
+				for (int k = i.x - mw; k < i.x + i.w + mw; k++) {
+					double distance = sqrt(pow((double)(k - (i.x + mw)), 2.0) + pow((double)(l - (i.y + mh)), 2.0));
+					lpower = 255 * (200 - (int)distance);
+					edit.setPixelRGBA(surface, k, l, 255, 255, 255, (Uint8)lpower);
+				}
+			}
+		}
+	}
+	for (int l = player.y - 10; l < player.y + player.h + 10; l++) {
+		for (int k = player.x - 10; k < player.x + player.w + 10; k++) {
+			double distance = sqrt(pow((double)(k - (player.x + 10)), 2.0) + pow((double)(l - (player.y + 10)), 2.0));
 			lpower = 255 * (200 - (int)distance);
-			edit.setPixelRGBA(surface, k, l, 0, 0, 255, (Uint8)lpower);
+			if (l < 600 && l > 0) {
+				edit.setPixelRGBA(surface, k, l, 0, 0, 255, (Uint8)lpower);
+			}
 		}
 	}
 	SDL_UnlockSurface(surface);
@@ -221,9 +252,9 @@ int main(int argc, char **argv) {
 				if (scalein >= 2.0f) {
 					if (scale >= 81) {
 						scale--;
-						speed+=10;
 						std::cout << speed << std::endl;
 					}
+					speed += 20;
 					scalein = 0;
 				}
 				destroyLighting();
