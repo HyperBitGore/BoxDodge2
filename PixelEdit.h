@@ -49,6 +49,28 @@ namespace Gore {
 			*pixel = SDL_MapRGBA(surf->format, r, g, b, a);
 			SDL_UnlockSurface(surf);
 		}
+		//Incase you are using something that can push the x or y value past the limit
+		void setPixelRGBASafe(SDL_Surface* surf, int x, int y, Uint8 r, Uint8 g, Uint8 b, Uint8 a, int mh, int mw) {
+			if (y < 0 || y >  mh || x < 0 || x > mw) {
+				return;
+			}
+			SDL_LockSurface(surf);
+			Uint32* pixels = (Uint32*)surf->pixels;
+			Uint32* pixel = pixels + (y*surf->w) + x;
+			*pixel = SDL_MapRGBA(surf->format, r, g, b, a);
+			SDL_UnlockSurface(surf);
+		}
+		//For rgb surfaces
+		void setPixelRGBSafe(SDL_Surface* tex, int x, int y, Uint8 r, Uint8 g, Uint8 b, int mh, int mw) {
+			if (y < 0 || y >  mh || x < 0 || x > mw) {
+				return;
+			}
+			SDL_LockSurface(tex);
+			Uint32* pixels = (Uint32*)tex->pixels;
+			Uint32* pixel = pixels + (y*tex->w) + x;
+			*pixel = SDL_MapRGB(tex->format, r, g, b);
+			SDL_UnlockSurface(tex);
+		}
 		//returns the pixel color of a pixel at a certain x and y
 		Uint32 getPixel(SDL_Surface* surf, int x, int y) {
 			SDL_LockSurface(surf);

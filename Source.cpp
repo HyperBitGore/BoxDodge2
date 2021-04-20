@@ -137,17 +137,15 @@ void drawMidpointCircle(int cx, int cy, int r, Gore::RGB col) {
 		if (x < y) {
 			break;
 		}
-		if (y+cx < 599 && x+cy < 599) {
-			edit.setPixelRGBA(surface, x + cx, y + cy, col.r, col.g, col.b, col.a);
-			edit.setPixelRGBA(surface, -x + cx, y + cy, col.r, col.g, col.b, col.a);
-			edit.setPixelRGBA(surface, x + cx, -y + cy, col.r, col.g, col.b, col.a);
-			edit.setPixelRGBA(surface, -x + cx, -y + cy, col.r, col.g, col.b, col.a);
-			if (x != y) {
-				edit.setPixelRGBA(surface, y + cx, x + cy, col.r, col.g, col.b, col.a);
-				edit.setPixelRGBA(surface, -y + cx, x + cy, col.r, col.g, col.b, col.a);
-				edit.setPixelRGBA(surface, y + cx, -x + cy, col.r, col.g, col.b, col.a);
-				edit.setPixelRGBA(surface, -y + cx, -x + cy, col.r, col.g, col.b, col.a);
-			}
+		edit.setPixelRGBASafe(surface, x + cx, y + cy, col.r, col.g, col.b, col.a, 599, 599);
+		edit.setPixelRGBASafe(surface, -x + cx, y + cy, col.r, col.g, col.b, col.a, 599, 599);
+		edit.setPixelRGBASafe(surface, x + cx, -y + cy, col.r, col.g, col.b, col.a, 599, 599);
+		edit.setPixelRGBASafe(surface, -x + cx, -y + cy, col.r, col.g, col.b, col.a, 599, 599);
+		if (x != y) {
+			edit.setPixelRGBASafe(surface, y + cx, x + cy, col.r, col.g, col.b, col.a, 599, 599);
+			edit.setPixelRGBASafe(surface, -y + cx, x + cy, col.r, col.g, col.b, col.a, 599, 599);
+			edit.setPixelRGBASafe(surface, y + cx, -x + cy, col.r, col.g, col.b, col.a, 599, 599);
+			edit.setPixelRGBASafe(surface, -y + cx, -x + cy, col.r, col.g, col.b, col.a, 599, 599);
 		}
 	}
 }
@@ -164,15 +162,13 @@ void updateLightingMidpoint() {
 	for (auto& i : boxes) {
 		int mw = i.w / 2;
 		int mh = i.h / 2;
-		if (i.y - i.h > 50 && i.y + i.h + mh < 599) {
-			r = i.w / 2;
-			lpower = 255;
-			for (int j = 0; j < mw; j++) {
-				drawMidpointCircle(i.x + mw, i.y + mh, r, Gore::RGB{ 255, 255, 255, (Uint8)lpower });
-				r++;
-				lpower -= (255/(mw));
+		r = i.w / 2;
+		lpower = 255;
+		for (int j = 0; j < mw; j++) {
+			drawMidpointCircle(i.x + mw, i.y + mh, r, Gore::RGB{ 255, 255, 255, (Uint8)lpower });
+			r++;
+			lpower -= (255/(mw));
 			}
-		}
 	}
 
 	SDL_UnlockSurface(surface);
