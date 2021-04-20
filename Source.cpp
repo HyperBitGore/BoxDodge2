@@ -120,34 +120,64 @@ void spawn_thread() {
 		}
 	}
 }
-//Write algorthim to handle caluclation of what alpha value should be
-void updateLighting() {
+//Changed to using midpoint circle algorithm, is much quicker
+void drawMidpointCircle(int cx, int cy, int r, Gore::RGB col) {
+	int x = r;
+	int y = 0;
+	int P = 1 - r;
+	while (x > y) {
+		y++;
+		if (P <= 0) {
+			P = P + 2 * y + 1;
+		}
+		else {
+			x--;
+			P = P + 2 * y - 2 * x + 1;
+		}
+		if (x < y) {
+			break;
+		}
+		if (y+cx < 599 && x+cy < 599) {
+			edit.setPixelRGBA(surface, x + cx, y + cy, col.r, col.g, col.b, col.a);
+			edit.setPixelRGBA(surface, -x + cx, y + cy, col.r, col.g, col.b, col.a);
+			edit.setPixelRGBA(surface, x + cx, -y + cy, col.r, col.g, col.b, col.a);
+			edit.setPixelRGBA(surface, -x + cx, -y + cy, col.r, col.g, col.b, col.a);
+			if (x != y) {
+				edit.setPixelRGBA(surface, y + cx, x + cy, col.r, col.g, col.b, col.a);
+				edit.setPixelRGBA(surface, -y + cx, x + cy, col.r, col.g, col.b, col.a);
+				edit.setPixelRGBA(surface, y + cx, -x + cy, col.r, col.g, col.b, col.a);
+				edit.setPixelRGBA(surface, -y + cx, -x + cy, col.r, col.g, col.b, col.a);
+			}
+		}
+	}
+}
+
+void updateLightingMidpoint() {
 	SDL_LockSurface(surface);
-	int lpower = 10;
+	int r = 10;
+	int lpower = 255;
+	for (int j = 0; j < 15; j++) {
+		drawMidpointCircle(player.x+10, player.y+10, r, Gore::RGB{ 0, 255, 0, (Uint8)lpower });
+		r++;
+		lpower -= 17;
+	}
 	for (auto& i : boxes) {
-		int mh = i.h / 2;
 		int mw = i.w / 2;
-		if (i.y-i.h > 0 && i.y+i.h+mh < 599) {
-			for (int l = i.y - mh; l < i.y + i.h + mh; l++) {
-				for (int k = i.x - mw; k < i.x + i.w + mw; k++) {
-					double distance = sqrt(pow((double)(k - (i.x + mw)), 2.0) + pow((double)(l - (i.y + mh)), 2.0));
-					lpower = 255 * (200 - (int)distance);
-					edit.setPixelRGBA(surface, k, l, 255, 255, 255, (Uint8)lpower);
-				}
+		int mh = i.h / 2;
+		if (i.y - i.h > 50 && i.y + i.h + mh < 599) {
+			r = i.w / 2;
+			lpower = 255;
+			for (int j = 0; j < mw; j++) {
+				drawMidpointCircle(i.x + mw, i.y + mh, r, Gore::RGB{ 255, 255, 255, (Uint8)lpower });
+				r++;
+				lpower -= (255/(mw));
 			}
 		}
 	}
-	for (int l = player.y - 10; l < player.y + player.h + 10; l++) {
-		for (int k = player.x - 10; k < player.x + player.w + 10; k++) {
-			double distance = sqrt(pow((double)(k - (player.x + 10)), 2.0) + pow((double)(l - (player.y + 10)), 2.0));
-			lpower = 255 * (200 - (int)distance);
-			if (l < 600 && l > 0) {
-				edit.setPixelRGBA(surface, k, l, 0, 0, 255, (Uint8)lpower);
-			}
-		}
-	}
+
 	SDL_UnlockSurface(surface);
 }
+
 void destroyLighting() {
 	SDL_LockSurface(surface);
 	std::memset(surface->pixels, 0, (600 * 600)*(sizeof(surface->pixels)));
@@ -203,10 +233,8 @@ int main(int argc, char **argv) {
 	float scalein = 0.0f;
 	std::thread box_manager(spawn_thread);
 	while (!exitf) {
-		LAST = NOW;
-		NOW = SDL_GetPerformanceCounter();
-		delta = (double)((NOW - LAST) * 1000 / (double)SDL_GetPerformanceFrequency() );
-		delta = delta * 0.001;
+		delta = edit.getDelta();
+		std::cout << delta << std::endl;
 		while (SDL_PollEvent(&e)) {
 			switch (e.type) {
 			case SDL_QUIT:
@@ -220,7 +248,7 @@ int main(int argc, char **argv) {
 		SDL_SetRenderDrawColor(rend, 0, 0, 0, 0);
 		SDL_RenderClear(rend);
 		if (!dead) {
-			updateLighting();
+			updateLightingMidpoint();
 			SDL_Texture* light = SDL_CreateTextureFromSurface(rend, surface);
 			SDL_RenderCopy(rend, light, NULL, &screenm);
 			SDL_DestroyTexture(light);
