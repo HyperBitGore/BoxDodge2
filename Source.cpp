@@ -6,6 +6,7 @@
 #include <chrono>
 #include "SDL_ttf.h"
 #include "SDL_image.h"
+#include "SDL_mixer.h"
 #undef main
 
 bool exitf = false;
@@ -15,7 +16,6 @@ SDL_Window *window;
 SDL_Surface *surface;
 Gore::Edit edit;
 double delta = 0;
-Uint64 LAST = 0;
 int cbox = 0;
 int score = 0;
 int scale = 100;
@@ -49,6 +49,7 @@ void death() {
 	scale = 100;
 	spawnc = 0;
 	speed = 200;
+	Mix_PauseMusic();
 }
 
 
@@ -184,8 +185,11 @@ void destroyLighting() {
 //https://wiki.libsdl.org/SDL_BlendMode?highlight=%28%5CbCategoryEnum%5Cb%29%7C%28SDLEnumTemplate%29
 int main(int argc, char **argv) {
 	srand(time(NULL));
-	if (SDL_Init(SDL_INIT_VIDEO) > 0) {
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) > 0) {
 		std::cout << "SDL Init failed: " << SDL_GetError << std::endl;
+	}
+	if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+		std::cout << "Error: " << Mix_GetError() << std::endl;
 	}
 	if (!(IMG_Init(IMG_INIT_PNG))) {
 		std::cout << "Image init failed: " << IMG_GetError << std::endl;
@@ -193,21 +197,11 @@ int main(int argc, char **argv) {
 	if (!TTF_Init()) {
 		std::cout << "Font init failed" << TTF_GetError << std::endl;
 	}
+	Mix_Music* backtrack = Mix_LoadMUS("boxdodge2.wav");
 	window = SDL_CreateWindow("Box Dodge 2", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 600, SDL_WINDOW_SHOWN);
 	rend = SDL_CreateRenderer(window, -1, 0);
 	surface = SDL_CreateRGBSurfaceWithFormat(0, 600, 600, 32, SDL_PIXELFORMAT_RGBA8888);
-	//SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_BLEND);
-	edit.setPixelRGBA(surface, 1, 1, 255, 0, 0, 255);
-	edit.setPixelRGBA(surface, 2, 1, 255, 0, 0, 255);
-	edit.setPixelRGBA(surface, 3, 1, 255, 0, 0, 255);
-	edit.setPixelRGBA(surface, 1, 2, 255, 0, 0, 200);
-	edit.setPixelRGBA(surface, 2, 2, 255, 0, 0, 200);
-	edit.setPixelRGBA(surface, 3, 2, 255, 0, 0, 200);
-	edit.setPixelRGBA(surface, 1, 3, 255, 0, 0, 170);
-	edit.setPixelRGBA(surface, 2, 3, 255, 0, 0, 170);
-	edit.setPixelRGBA(surface, 3, 3, 255, 0, 0, 170);
 	player.Update = &player_u;
-	Uint64 NOW = SDL_GetPerformanceCounter();
 	TTF_Font* font = TTF_OpenFont("MetalMania-Regular.ttf", 24);
 	TTF_Font* numfont = TTF_OpenFont("DelaGothicOne-Regular.ttf", 12);
 	SDL_Event e;
@@ -300,12 +294,15 @@ int main(int argc, char **argv) {
 			if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)) {
 				score = 0;
 				dead = false;
+				Mix_PlayMusic(backtrack, -1);
 			}
 		}
 		SDL_RenderPresent(rend);
 	}
 	box_manager.join();
 	TTF_Quit();
+	Mix_Quit();
+	Mix_FreeMusic(backtrack);
 	SDL_DestroyTexture(rtext);
 	SDL_DestroyTexture(rtext2);
 	SDL_DestroyRenderer(rend);
